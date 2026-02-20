@@ -923,7 +923,7 @@ function Report({ result, title, url, editUrl, generatedAt }) {
 /* ════════════════════════════════════════════════════
    CATEGORY REPORT COMPONENT
 ════════════════════════════════════════════════════ */
-function CategoryReport({ catTitle, results, generatedAt }) {
+function CategoryReport({ catTitle, results, generatedAt, catMeta = {} }) {
   const [sort,     setSort]     = useState('score');
   const [expanded, setExpanded] = useState(null);
 
@@ -949,7 +949,9 @@ function CategoryReport({ catTitle, results, generatedAt }) {
       h('div', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#E3120B', marginBottom:7 } }, 'Category Audit — Women\'s Biographies'),
       h('div', { style:{ fontFamily:"'Playfair Display',serif", fontSize:'clamp(17px,3vw,24px)', fontWeight:800, lineHeight:1.2 } }, catTitle),
       h('div', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, color:'#555', marginTop:7, letterSpacing:'0.05em' } },
-        `${totalArticles} articles analysed · ${flagged} flagged · avg ${avgScore} patterns/article · ${generatedAt}`)
+        `${totalArticles} articles analysed · ${flagged} flagged · avg ${avgScore} patterns/article` +
+        (catMeta.skipped > 0 ? ` · ${catMeta.skipped} skipped (not women's biographies)` : '') +
+        ` · ${generatedAt}`)
     ),
 
     h('div', { style:{ padding:'20px 26px', background:'#F0E8DF', display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))', gap:12 } },
@@ -1050,26 +1052,32 @@ function App() {
     if (isCategory(target)) {
       try {
         const { catTitle, members } = await fetchCategoryMembers(target);
-        setProgress({ done:0, total:members.length, current:'' });
+        setProgress({ done:0, total:members.length, current:'', skipped:0 });
         const articleResults = [];
+        let skipped = 0;
         for (let i = 0; i < members.length; i++) {
           const title = members[i];
-          setProgress({ done:i, total:members.length, current:title });
+          setProgress({ done:i, total:members.length, current:title, skipped });
           try {
             const wiki = await fetchWiki(title);
             const sectionMap = buildSectionMap(wiki.text, wiki.apiSections);
             const res = analyseArticle(wiki.title, wiki.text, sectionMap, wiki.editBase);
             articleResults.push({ title: wiki.title, url: wiki.url, editUrl: wiki.editUrl, result: res });
           } catch(_) {
-            // skip non-women or unavailable articles silently
+            skipped++;
           }
           // small delay to be a polite API citizen
           await new Promise(r => setTimeout(r, 120));
         }
-        setProgress({ done:members.length, total:members.length, current:'' });
-        if (articleResults.length === 0) throw new Error('No women\'s biographies were found in this category.');
+        setProgress({ done:members.length, total:members.length, current:'', skipped });
+        if (articleResults.length === 0) {
+          const msg = skipped === members.length
+            ? `None of the ${members.length} articles in "${catTitle}" appear to be women's biographies. This tool only analyses biographies of women — try a category like "Category:Women Nobel laureates" or "Category:Women scientists".`
+            : `No women's biographies were found in this category.`;
+          throw new Error(msg);
+        }
         setCatResults(articleResults);
-        setCatMeta({ catTitle, generatedAt: new Date().toLocaleString('en-GB', { dateStyle:'medium', timeStyle:'short' }) });
+        setCatMeta({ catTitle, skipped, generatedAt: new Date().toLocaleString('en-GB', { dateStyle:'medium', timeStyle:'short' }) });
         setPhase('done');
         setTimeout(()=>reportRef.current?.scrollIntoView({behavior:'smooth',block:'start'}),100);
       } catch(err) {
@@ -1149,11 +1157,13 @@ function App() {
           )
         ),
 
-        /* Progress bar for category mode */
         progress && h('div', { style:{ marginTop:12 } },
           h('div', { style:{ display:'flex', justifyContent:'space-between', fontFamily:"'IBM Plex Mono',monospace", fontSize:9, letterSpacing:'0.08em', color:'#888', marginBottom:4 } },
             h('span', null, progress.current ? `Analysing: ${progress.current}` : 'Preparing…'),
-            h('span', null, `${progress.done} / ${progress.total}`)
+            h('span', null,
+              `${progress.done} / ${progress.total}`,
+              progress.skipped > 0 && h('span', { style:{ color:'#aaa', marginLeft:8 } }, `· ${progress.skipped} skipped (not women's biographies)`)
+            )
           ),
           h('div', { style:{ height:4, background:'#ddd', borderRadius:2, overflow:'hidden' } },
             h('div', { style:{ height:'100%', background:'#E3120B', width: progress.total ? `${Math.round(progress.done/progress.total*100)}%` : '0%', transition:'width 0.3s ease' } })
@@ -1167,7 +1177,7 @@ function App() {
     /* Report */
     h('div', { ref:reportRef, style:{ maxWidth:900, margin:'0 auto' } },
       phase==='done' && catResults && catMeta
-        ? h(CategoryReport, { catTitle:catMeta.catTitle, results:catResults, generatedAt:catMeta.generatedAt })
+        ? h(CategoryReport, { catTitle:catMeta.catTitle, results:catResults, generatedAt:catMeta.generatedAt, catMeta })
         : phase==='done' && result && meta
           ? h(Report, { result, title:meta.title, url:meta.url, editUrl:meta.editUrl, generatedAt:meta.generatedAt })
           : phase==='idle' && h('div', { style:{ textAlign:'center', padding:'64px 24px' } },
