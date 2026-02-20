@@ -1140,7 +1140,7 @@ function App() {
         /* Quick picks */
         h('div', { style:{ marginTop:10, display:'flex', gap:6, flexWrap:'wrap', alignItems:'center' } },
           h('span', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, letterSpacing:'0.12em', textTransform:'uppercase', color:'#aaa' } }, 'Articles:'),
-          ...['Marie Curie','Frida Kahlo','Malala Yousafzai','Harriet Tubman','Wangari Maathai'].map(n=>
+          ...['Marie Curie','Frida Kahlo','Malala Yousafzai','Harriet Tubman','Miriam Makeba'].map(n=>
             h('button',{key:n, onClick:()=>{ setQuery(n); run(n); },
               style:{padding:'3px 9px',border:'1px solid #DDD4C8',background:'transparent',color:'#888',fontSize:12,cursor:'pointer',fontFamily:"'Source Serif 4',serif",fontStyle:'italic'}},n)
           )
