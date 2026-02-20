@@ -1188,10 +1188,13 @@ function App() {
         ),
         h('div', { style:{ marginTop:6, display:'flex', gap:6, flexWrap:'wrap', alignItems:'center' } },
           h('span', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, letterSpacing:'0.12em', textTransform:'uppercase', color:'#aaa' } }, 'Categories:'),
-          ...['Category:Women Nobel laureates','Category:Women mathematicians','Category:Women painters'].map(n=>
+          ...['Category:Women Nobel laureates','Category:Women mathematicians'].map(n=>
             h('button',{key:n, onClick:()=>{ setQuery(n); run(n); },
               style:{padding:'3px 9px',border:'1px solid #DDD4C8',background:'transparent',color:'#888',fontSize:12,cursor:'pointer',fontFamily:"'Source Serif 4',serif",fontStyle:'italic'}}, n.replace('Category:',''))
           )
+        ),
+        h('div', { style:{ marginTop:6, fontFamily:"'IBM Plex Mono',monospace", fontSize:9, color:'#aaa', letterSpacing:'0.05em', lineHeight:1.6 } },
+          '📂 Category mode includes direct members and one level of subcategories (up to 500 articles).'
         ),
 
         progress && h('div', { style:{ marginTop:12 } },
