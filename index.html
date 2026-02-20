@@ -533,7 +533,7 @@ function analyseArticle(title, fullText, sectionMap, editBase) {
     });
   });
 
-  const topInstances = instances.sort((a, b) => b.weight - a.weight).slice(0, 8);
+  const topInstances = instances.sort((a, b) => b.weight - a.weight);
 
   // Category presence (true/false per category, not a score)
   const catHits = { relational:0, appearance:0, diminutive:0, gendered:0, omission:0, tone:0 };
@@ -941,6 +941,8 @@ function App() {
         h('div', { style:{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6 } },
           h('div', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, color:'#444', letterSpacing:'0.06em', textAlign:'right', lineHeight:1.7 } },
             'Women\'s biographies only · Algorithmic · No AI · No data sent externally'),
+          h('a', { href:'es.html', style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, color:'#E3120B', letterSpacing:'0.08em', textDecoration:'none', border:'1px solid #E3120B33', padding:'3px 8px' } },
+            '🇪🇸 Versión en español →')
         )
       )
     ),
