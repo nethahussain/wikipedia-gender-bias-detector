@@ -608,7 +608,7 @@ async function searchWiki(query) {
 // Fetch article + check it is about a woman
 async function fetchWiki(input) {
   const clean = input.trim().replace(/^https?:\/\/[a-z.]*wikipedia\.org\/wiki\//i, '');
-  const url   = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(clean)}&prop=extracts|categories&explaintext=true&cllimit=50&format=json&origin=*`;
+  const url   = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(clean)}&prop=extracts|categories&explaintext=1&exlimit=1&exsectionformat=plain&cllimit=50&format=json&origin=*`;
   const res   = await fetch(url);
   if (!res.ok) throw new Error(`Wikipedia API returned ${res.status}.`);
   const data  = await res.json();
