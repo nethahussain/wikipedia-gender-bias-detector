@@ -592,17 +592,41 @@ function analyseArticle(title, fullText, sectionMap, editBase) {
    WIKIPEDIA API
 ════════════════════════════════════════════════════ */
 
-// Search autocomplete
+// Search autocomplete — articles AND categories
 async function searchWiki(query) {
   if (!query || query.length < 2) return [];
-  const url = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=8&namespace=0&format=json&origin=*`;
+  const iscat = /^category:/i.test(query);
+  const ns    = iscat ? '14' : '0';
+  const q     = iscat ? query.replace(/^category:/i, '') : query;
+  const url = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(iscat ? 'Category:'+q : q)}&limit=8&namespace=${ns}&format=json&origin=*`;
   const res  = await fetch(url);
   const data = await res.json();
-  // opensearch returns [query, [titles], [descriptions], [urls]]
   const titles = data[1] || [];
   const descs  = data[2] || [];
   const urls   = data[3] || [];
-  return titles.map((t, i) => ({ title: t, desc: descs[i] || '', url: urls[i] || '' }));
+  return titles.map((t, i) => ({ title: t, desc: descs[i] || '', url: urls[i] || '', isCategory: t.startsWith('Category:') }));
+}
+
+// Fetch all article titles in a Wikipedia category (up to 500)
+async function fetchCategoryMembers(input) {
+  const catTitle = /^category:/i.test(input.trim())
+    ? input.trim()
+    : 'Category:' + input.trim();
+  const members = [];
+  let cmcontinue = null;
+  do {
+    const cont = cmcontinue ? `&cmcontinue=${encodeURIComponent(cmcontinue)}` : '';
+    const url = `https://en.wikipedia.org/w/api.php?action=query&list=categorymembers&cmtitle=${encodeURIComponent(catTitle)}&cmnamespace=0&cmlimit=50&format=json&origin=*${cont}`;
+    const res  = await fetch(url);
+    if (!res.ok) throw new Error(`Wikipedia API returned ${res.status}.`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.info || 'Category not found.');
+    const batch = data.query?.categorymembers || [];
+    if (batch.length === 0 && members.length === 0) throw new Error(`No articles found in "${catTitle}". Check the category name.`);
+    members.push(...batch.map(m => m.title));
+    cmcontinue = data.continue?.cmcontinue || null;
+  } while (cmcontinue && members.length < 500);
+  return { catTitle, members };
 }
 
 // Fetch article + check it is about a woman
@@ -718,7 +742,7 @@ function SearchDropdown({ value, onChange, onSelect, onSubmit, busy }) {
     h('div', { style:{ position:'relative' } },
       h('input', {
         type:'text', value, autoComplete:'off',
-        placeholder:'Search Wikipedia for a woman\'s biography…',
+        placeholder:'Search for a biography or type "Category:…"',
         onChange: e => { onChange(e.target.value); },
         onFocus:  () => { if (results.length > 0) setOpen(true); },
         onKeyDown: handleKey,
@@ -737,10 +761,11 @@ function SearchDropdown({ value, onChange, onSelect, onSubmit, busy }) {
               onMouseDown: () => pick(item),
               onMouseEnter: () => setActiveIdx(i),
             },
-              h('div', { className:'thumb-placeholder' }, '♀'),
+              h('div', { className:'thumb-placeholder', style:{fontSize:16} }, item.isCategory ? '📂' : '♀'),
               h('div', { style:{ flex:1, minWidth:0 } },
                 h('div', { style:{ fontWeight:600, fontSize:14, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' } }, item.title),
-                item.desc && h('div', { style:{ fontSize:11, color:'#888', fontFamily:"'IBM Plex Mono',monospace", marginTop:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' } }, item.desc)
+                h('div', { style:{ fontSize:11, color:'#888', fontFamily:"'IBM Plex Mono',monospace", marginTop:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' } },
+                  item.isCategory ? '📂 Wikipedia category — click to audit all articles' : item.desc)
               )
             )
           )
@@ -896,20 +921,165 @@ function Report({ result, title, url, editUrl, generatedAt }) {
 }
 
 /* ════════════════════════════════════════════════════
+   CATEGORY REPORT COMPONENT
+════════════════════════════════════════════════════ */
+function CategoryReport({ catTitle, results, generatedAt }) {
+  const [sort,     setSort]     = useState('score');
+  const [expanded, setExpanded] = useState(null);
+
+  const sorted = [...results].sort((a, b) =>
+    sort === 'score'
+      ? b.result.instances.length - a.result.instances.length
+      : a.title.localeCompare(b.title)
+  );
+
+  const totalArticles = results.length;
+  const flagged       = results.filter(r => r.result.instances.length > 0).length;
+  const avgScore      = totalArticles
+    ? (results.reduce((s,r) => s + r.result.instances.length, 0) / totalArticles).toFixed(1)
+    : 0;
+
+  const catTotals = { relational:0, appearance:0, diminutive:0, gendered:0, omission:0, tone:0 };
+  results.forEach(r => Object.entries(r.result.catHits).forEach(([k,v]) => { catTotals[k] += v; }));
+  const topCat = Object.entries(catTotals).sort((a,b)=>b[1]-a[1])[0];
+
+  return h('div', { className:'report-anim' },
+
+    h('div', { style:{ background:'#0A0A0A', color:'#FAF8F5', padding:'22px 26px' } },
+      h('div', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#E3120B', marginBottom:7 } }, 'Category Audit — Women\'s Biographies'),
+      h('div', { style:{ fontFamily:"'Playfair Display',serif", fontSize:'clamp(17px,3vw,24px)', fontWeight:800, lineHeight:1.2 } }, catTitle),
+      h('div', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, color:'#555', marginTop:7, letterSpacing:'0.05em' } },
+        `${totalArticles} articles analysed · ${flagged} flagged · avg ${avgScore} patterns/article · ${generatedAt}`)
+    ),
+
+    h('div', { style:{ padding:'20px 26px', background:'#F0E8DF', display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))', gap:12 } },
+      [
+        ['Articles analysed', totalArticles],
+        ['Articles flagged', flagged],
+        ['Clean articles', totalArticles - flagged],
+        ['Avg patterns / article', avgScore],
+        ['Most common bias type', topCat && topCat[1] > 0 ? CAT_META[topCat[0]].label + ` (${topCat[1]})` : '—'],
+      ].map(([label, val]) =>
+        h('div', { key:label, style:{ background:'#fff', padding:'14px 16px', borderLeft:'3px solid #E3120B' } },
+          h('div', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, letterSpacing:'0.12em', textTransform:'uppercase', color:'#888', marginBottom:4 } }, label),
+          h('div', { style:{ fontFamily:"'Playfair Display',serif", fontSize:20, fontWeight:800 } }, String(val))
+        )
+      )
+    ),
+
+    h('div', { style:{ padding:'16px 26px', background:'#fff', borderBottom:'1px solid #eee' } },
+      h('div', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, letterSpacing:'0.14em', textTransform:'uppercase', color:'#888', marginBottom:10 } }, 'Bias breakdown across all articles'),
+      h('div', { style:{ display:'flex', flexWrap:'wrap', gap:6 } },
+        Object.entries(catTotals).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([k,v]) => {
+          const c = CAT_META[k];
+          return h('span', { key:k, style:{ display:'inline-flex', alignItems:'center', gap:5, padding:'4px 11px', background:c.bg, color:c.color, fontFamily:"'IBM Plex Mono',monospace", fontSize:9, letterSpacing:'0.08em', border:`1px solid ${c.color}33` } },
+            `${c.icon} ${c.label}: ${v}`);
+        })
+      )
+    ),
+
+    h('div', { style:{ padding:'20px 26px' } },
+      h('div', { style:{ display:'flex', alignItems:'center', gap:10, marginBottom:14, flexWrap:'wrap' } },
+        h('div', { style:{ fontFamily:"'Playfair Display',serif", fontSize:19, fontWeight:800, flex:1 } }, 'Results by article'),
+        h('div', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, color:'#888', textTransform:'uppercase', letterSpacing:'0.1em' } }, 'Sort:'),
+        ['score','alpha'].map(s =>
+          h('button', { key:s, onClick:()=>setSort(s),
+            style:{ padding:'5px 12px', border:'1px solid #ccc', background:sort===s?'#0A0A0A':'#fff', color:sort===s?'#fff':'#555', fontFamily:"'IBM Plex Mono',monospace", fontSize:9, letterSpacing:'0.1em', textTransform:'uppercase', cursor:'pointer' } },
+            s==='score' ? 'By bias score' : 'A–Z')
+        )
+      ),
+
+      sorted.map(({ title, url, editUrl, result: res }) => {
+        const n = res.instances.length;
+        const isOpen = expanded === title;
+        const scoreColor = n === 0 ? '#1a7a4a' : n < 3 ? '#b85a0a' : '#c0313f';
+        return h('div', { key:title, style:{ borderBottom:'1px solid #f0ebe4' } },
+          h('div', { style:{ display:'flex', alignItems:'center', gap:14, padding:'12px 0', cursor:'pointer' },
+            onClick:()=>setExpanded(isOpen ? null : title) },
+            h('div', { style:{ fontFamily:"'Playfair Display',serif", fontSize:16, fontWeight:800, color:scoreColor, width:30, textAlign:'center', flexShrink:0 } }, n),
+            h('div', { style:{ flex:1, minWidth:0 } },
+              h('div', { style:{ fontSize:14, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' } }, title),
+              n > 0 && h('div', { style:{ marginTop:3, display:'flex', flexWrap:'wrap', gap:4 } },
+                Object.entries(res.catHits).filter(([,v])=>v>0).map(([k,v]) => {
+                  const c = CAT_META[k];
+                  return h('span',{key:k,style:{fontSize:9,padding:'1px 6px',background:c.bg,color:c.color,fontFamily:"'IBM Plex Mono',monospace",border:`1px solid ${c.color}22`}},`${c.icon} ${v}`);
+                })
+              )
+            ),
+            h('div', { style:{ display:'flex', gap:6, flexShrink:0 } },
+              h('a', { href:url, target:'_blank', rel:'noopener noreferrer', onClick:e=>e.stopPropagation(),
+                style:{ padding:'4px 9px', border:'1px solid #ddd', color:'#555', textDecoration:'none', fontSize:10, fontFamily:"'IBM Plex Mono',monospace" } }, '↗'),
+              h('a', { href:editUrl, target:'_blank', rel:'noopener noreferrer', onClick:e=>e.stopPropagation(),
+                style:{ padding:'4px 9px', background:'#E3120B', color:'#fff', textDecoration:'none', fontSize:10, fontFamily:"'IBM Plex Mono',monospace" } }, 'Edit')
+            ),
+            h('span', { style:{ color:'#ccc', fontSize:11, flexShrink:0 } }, isOpen?'▲':'▼')
+          ),
+          isOpen && n > 0 && h('div', { style:{ paddingBottom:16, paddingLeft:42 } },
+            res.instances.map((inst, j) => h(InstanceCard, { key:j, inst }))
+          ),
+          isOpen && n === 0 && h('div', { style:{ paddingBottom:12, paddingLeft:42, fontSize:13, color:'#1a7a4a', fontStyle:'italic' } },
+            '✓ No bias patterns detected in this article.')
+        );
+      })
+    )
+  );
+}
+
+/* ════════════════════════════════════════════════════
    APP
 ════════════════════════════════════════════════════ */
 function App() {
-  const [query,   setQuery]   = useState('');
-  const [phase,   setPhase]   = useState('idle');
-  const [errMsg,  setErr]     = useState('');
-  const [result,  setResult]  = useState(null);
-  const [meta,    setMeta]    = useState(null);
+  const [query,      setQuery]      = useState('');
+  const [phase,      setPhase]      = useState('idle');
+  const [errMsg,     setErr]        = useState('');
+  const [result,     setResult]     = useState(null);
+  const [meta,       setMeta]       = useState(null);
+  const [catResults, setCatResults] = useState(null);
+  const [catMeta,    setCatMeta]    = useState(null);
+  const [progress,   setProgress]   = useState(null); // { done, total, current }
   const reportRef = useRef(null);
+
+  const isCategory = q => /^category:/i.test(q.trim());
 
   const run = useCallback(async (titleOverride) => {
     const target = (titleOverride || query).trim();
     if (!target || phase === 'loading') return;
-    setPhase('loading'); setErr(''); setResult(null); setMeta(null);
+    setPhase('loading'); setErr(''); setResult(null); setMeta(null); setCatResults(null); setCatMeta(null); setProgress(null);
+
+    // ── Category mode ──
+    if (isCategory(target)) {
+      try {
+        const { catTitle, members } = await fetchCategoryMembers(target);
+        setProgress({ done:0, total:members.length, current:'' });
+        const articleResults = [];
+        for (let i = 0; i < members.length; i++) {
+          const title = members[i];
+          setProgress({ done:i, total:members.length, current:title });
+          try {
+            const wiki = await fetchWiki(title);
+            const sectionMap = buildSectionMap(wiki.text, wiki.apiSections);
+            const res = analyseArticle(wiki.title, wiki.text, sectionMap, wiki.editBase);
+            articleResults.push({ title: wiki.title, url: wiki.url, editUrl: wiki.editUrl, result: res });
+          } catch(_) {
+            // skip non-women or unavailable articles silently
+          }
+          // small delay to be a polite API citizen
+          await new Promise(r => setTimeout(r, 120));
+        }
+        setProgress({ done:members.length, total:members.length, current:'' });
+        if (articleResults.length === 0) throw new Error('No women\'s biographies were found in this category.');
+        setCatResults(articleResults);
+        setCatMeta({ catTitle, generatedAt: new Date().toLocaleString('en-GB', { dateStyle:'medium', timeStyle:'short' }) });
+        setPhase('done');
+        setTimeout(()=>reportRef.current?.scrollIntoView({behavior:'smooth',block:'start'}),100);
+      } catch(err) {
+        setErr(err.message || 'Something went wrong. Please try again.');
+        setPhase('error');
+      }
+      return;
+    }
+
+    // ── Single article mode ──
     try {
       const wiki   = await fetchWiki(target);
       const sectionMap = buildSectionMap(wiki.text, wiki.apiSections);
@@ -951,7 +1121,7 @@ function App() {
     h('div', { className:'no-print', style:{ background:'#F0E8DF', borderBottom:'2px solid #0A0A0A' } },
       h('div', { style:{ maxWidth:900, margin:'0 auto', padding:'24px' } },
         h('div', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, letterSpacing:'0.15em', textTransform:'uppercase', color:'#888', marginBottom:10 } },
-          `Search Wikipedia for a woman's biography — checks against ${PATTERNS.length} bias patterns`),
+          `Search for a woman's biography or a Wikipedia category — checks against ${PATTERNS.length} bias patterns`),
         h('div', { style:{ display:'flex', gap:10, flexWrap:'wrap', alignItems:'flex-start' } },
           h(SearchDropdown, {
             value: query,
@@ -959,6 +1129,7 @@ function App() {
             onSelect: (title) => { setQuery(title); run(title); },
             onSubmit: () => run(),
             busy,
+            placeholder: 'Search for a woman\'s biography or type "Category:…"',
           }),
           h('button', {
             onClick: ()=>run(), disabled: busy || !query.trim(),
@@ -968,10 +1139,28 @@ function App() {
 
         /* Quick picks */
         h('div', { style:{ marginTop:10, display:'flex', gap:6, flexWrap:'wrap', alignItems:'center' } },
-          h('span', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, letterSpacing:'0.12em', textTransform:'uppercase', color:'#aaa' } }, 'Try:'),
+          h('span', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, letterSpacing:'0.12em', textTransform:'uppercase', color:'#aaa' } }, 'Articles:'),
           ...['Marie Curie','Frida Kahlo','Malala Yousafzai','Harriet Tubman','Wangari Maathai'].map(n=>
             h('button',{key:n, onClick:()=>{ setQuery(n); run(n); },
               style:{padding:'3px 9px',border:'1px solid #DDD4C8',background:'transparent',color:'#888',fontSize:12,cursor:'pointer',fontFamily:"'Source Serif 4',serif",fontStyle:'italic'}},n)
+          )
+        ),
+        h('div', { style:{ marginTop:6, display:'flex', gap:6, flexWrap:'wrap', alignItems:'center' } },
+          h('span', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, letterSpacing:'0.12em', textTransform:'uppercase', color:'#aaa' } }, 'Categories:'),
+          ...['Category:Women Nobel laureates','Category:Women mathematicians','Category:Women painters'].map(n=>
+            h('button',{key:n, onClick:()=>{ setQuery(n); run(n); },
+              style:{padding:'3px 9px',border:'1px solid #DDD4C8',background:'transparent',color:'#888',fontSize:12,cursor:'pointer',fontFamily:"'Source Serif 4',serif",fontStyle:'italic'}}, n.replace('Category:',''))
+          )
+        ),
+
+        /* Progress bar for category mode */
+        progress && h('div', { style:{ marginTop:12 } },
+          h('div', { style:{ display:'flex', justifyContent:'space-between', fontFamily:"'IBM Plex Mono',monospace", fontSize:9, letterSpacing:'0.08em', color:'#888', marginBottom:4 } },
+            h('span', null, progress.current ? `Analysing: ${progress.current}` : 'Preparing…'),
+            h('span', null, `${progress.done} / ${progress.total}`)
+          ),
+          h('div', { style:{ height:4, background:'#ddd', borderRadius:2, overflow:'hidden' } },
+            h('div', { style:{ height:'100%', background:'#E3120B', width: progress.total ? `${Math.round(progress.done/progress.total*100)}%` : '0%', transition:'width 0.3s ease' } })
           )
         ),
 
@@ -981,15 +1170,17 @@ function App() {
 
     /* Report */
     h('div', { ref:reportRef, style:{ maxWidth:900, margin:'0 auto' } },
-      phase==='done' && result && meta
-        ? h(Report, { result, title:meta.title, url:meta.url, editUrl:meta.editUrl, generatedAt:meta.generatedAt })
-        : phase==='idle' && h('div', { style:{ textAlign:'center', padding:'64px 24px' } },
-            h('div',{style:{fontSize:48,marginBottom:14,opacity:.1}},'⚖'),
-            h('div',{style:{fontFamily:"'Playfair Display',serif",fontSize:16,fontStyle:'italic',color:'#bbb',maxWidth:340,margin:'0 auto',lineHeight:1.9}},
-              'Search for a woman\'s Wikipedia biography above to generate an instant bias audit — no AI or API key required.'),
-            h('div',{style:{marginTop:14,fontFamily:"'IBM Plex Mono',monospace",fontSize:9,letterSpacing:'0.12em',color:'#ccc'}},
-              `${PATTERNS.length} bias indicators · 6 categories · women's biographies only · fully client-side`)
-          )
+      phase==='done' && catResults && catMeta
+        ? h(CategoryReport, { catTitle:catMeta.catTitle, results:catResults, generatedAt:catMeta.generatedAt })
+        : phase==='done' && result && meta
+          ? h(Report, { result, title:meta.title, url:meta.url, editUrl:meta.editUrl, generatedAt:meta.generatedAt })
+          : phase==='idle' && h('div', { style:{ textAlign:'center', padding:'64px 24px' } },
+              h('div',{style:{fontSize:48,marginBottom:14,opacity:.1}},'⚖'),
+              h('div',{style:{fontFamily:"'Playfair Display',serif",fontSize:16,fontStyle:'italic',color:'#bbb',maxWidth:380,margin:'0 auto',lineHeight:1.9}},
+                'Search for a woman\'s Wikipedia biography — or an entire category — to generate an instant bias audit.'),
+              h('div',{style:{marginTop:14,fontFamily:"'IBM Plex Mono',monospace",fontSize:9,letterSpacing:'0.12em',color:'#ccc'}},
+                `${PATTERNS.length} bias indicators · 6 categories · women's biographies only · fully client-side`)
+            )
     ),
 
     h('div',{className:'tool-footer no-print'},
