@@ -612,21 +612,57 @@ async function fetchCategoryMembers(input) {
   const catTitle = /^category:/i.test(input.trim())
     ? input.trim()
     : 'Category:' + input.trim();
-  const members = [];
-  let cmcontinue = null;
-  do {
-    const cont = cmcontinue ? `&cmcontinue=${encodeURIComponent(cmcontinue)}` : '';
-    const url = `https://en.wikipedia.org/w/api.php?action=query&list=categorymembers&cmtitle=${encodeURIComponent(catTitle)}&cmnamespace=0&cmlimit=50&format=json&origin=*${cont}`;
-    const res  = await fetch(url);
-    if (!res.ok) throw new Error(`Wikipedia API returned ${res.status}.`);
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.info || 'Category not found.');
-    const batch = data.query?.categorymembers || [];
-    if (batch.length === 0 && members.length === 0) throw new Error(`No articles found in "${catTitle}". Check the category name.`);
-    members.push(...batch.map(m => m.title));
-    cmcontinue = data.continue?.cmcontinue || null;
-  } while (cmcontinue && members.length < 500);
-  return { catTitle, members };
+
+  // Fetch direct article members (namespace 0) AND subcategories (namespace 14)
+  async function getMembersAndSubcats(title) {
+    const articles = [];
+    const subcats  = [];
+    let cmcontinue = null;
+    do {
+      const cont = cmcontinue ? `&cmcontinue=${encodeURIComponent(cmcontinue)}` : '';
+      const url = `https://en.wikipedia.org/w/api.php?action=query&list=categorymembers&cmtitle=${encodeURIComponent(title)}&cmnamespace=0|14&cmlimit=50&format=json&origin=*${cont}`;
+      const res  = await fetch(url);
+      if (!res.ok) throw new Error(`Wikipedia API returned ${res.status}.`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.info || 'Category not found.');
+      for (const m of (data.query?.categorymembers || [])) {
+        if (m.ns === 14) subcats.push(m.title);
+        else articles.push(m.title);
+      }
+      cmcontinue = data.continue?.cmcontinue || null;
+    } while (cmcontinue && articles.length < 500);
+    return { articles, subcats };
+  }
+
+  // Fetch top-level
+  const top = await getMembersAndSubcats(catTitle);
+  const memberSet = new Set(top.articles);
+  const subcatList = top.subcats;
+
+  // If no direct articles, or subcategories exist, go one level deeper
+  if (subcatList.length > 0 && memberSet.size < 500) {
+    for (const subcat of subcatList.slice(0, 20)) { // cap at 20 subcategories
+      const sub = await getMembersAndSubcats(subcat);
+      for (const a of sub.articles) {
+        memberSet.add(a);
+        if (memberSet.size >= 500) break;
+      }
+      if (memberSet.size >= 500) break;
+    }
+  }
+
+  const members = [...memberSet];
+
+  if (members.length === 0) {
+    const hasSubcats = subcatList.length > 0;
+    throw new Error(
+      hasSubcats
+        ? `No articles found directly in "${catTitle}", and its ${subcatList.length} subcategorie${subcatList.length > 1 ? 's' : ''} also appear to be empty.`
+        : `No articles found in "${catTitle}". Check the category name.`
+    );
+  }
+
+  return { catTitle, members, subcatCount: subcatList.length };
 }
 
 // Fetch article + check it is about a woman
@@ -950,6 +986,7 @@ function CategoryReport({ catTitle, results, generatedAt, catMeta = {} }) {
       h('div', { style:{ fontFamily:"'Playfair Display',serif", fontSize:'clamp(17px,3vw,24px)', fontWeight:800, lineHeight:1.2 } }, catTitle),
       h('div', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, color:'#555', marginTop:7, letterSpacing:'0.05em' } },
         `${totalArticles} articles analysed · ${flagged} flagged · avg ${avgScore} patterns/article` +
+        (catMeta.subcatCount > 0 ? ` · includes ${catMeta.subcatCount} subcategor${catMeta.subcatCount > 1 ? 'ies' : 'y'}` : '') +
         (catMeta.skipped > 0 ? ` · ${catMeta.skipped} skipped (not women's biographies)` : '') +
         ` · ${generatedAt}`)
     ),
@@ -1051,8 +1088,8 @@ function App() {
     // ── Category mode ──
     if (isCategory(target)) {
       try {
-        const { catTitle, members } = await fetchCategoryMembers(target);
-        setProgress({ done:0, total:members.length, current:'', skipped:0 });
+        const { catTitle, members, subcatCount } = await fetchCategoryMembers(target);
+        setProgress({ done:0, total:members.length, current:'', skipped:0, subcatCount });
         const articleResults = [];
         let skipped = 0;
         for (let i = 0; i < members.length; i++) {
@@ -1077,7 +1114,7 @@ function App() {
           throw new Error(msg);
         }
         setCatResults(articleResults);
-        setCatMeta({ catTitle, skipped, generatedAt: new Date().toLocaleString('en-GB', { dateStyle:'medium', timeStyle:'short' }) });
+        setCatMeta({ catTitle, skipped, subcatCount, generatedAt: new Date().toLocaleString('en-GB', { dateStyle:'medium', timeStyle:'short' }) });
         setPhase('done');
         setTimeout(()=>reportRef.current?.scrollIntoView({behavior:'smooth',block:'start'}),100);
       } catch(err) {
@@ -1159,10 +1196,11 @@ function App() {
 
         progress && h('div', { style:{ marginTop:12 } },
           h('div', { style:{ display:'flex', justifyContent:'space-between', fontFamily:"'IBM Plex Mono',monospace", fontSize:9, letterSpacing:'0.08em', color:'#888', marginBottom:4 } },
-            h('span', null, progress.current ? `Analysing: ${progress.current}` : 'Preparing…'),
+            h('span', null, progress.current ? `Analysing: ${progress.current}` : 'Fetching articles…'),
             h('span', null,
               `${progress.done} / ${progress.total}`,
-              progress.skipped > 0 && h('span', { style:{ color:'#aaa', marginLeft:8 } }, `· ${progress.skipped} skipped (not women's biographies)`)
+              progress.skipped > 0 && h('span', { style:{ color:'#aaa', marginLeft:8 } }, `· ${progress.skipped} skipped`),
+              progress.subcatCount > 0 && h('span', { style:{ color:'#aaa', marginLeft:8 } }, `· includes ${progress.subcatCount} subcategor${progress.subcatCount > 1 ? 'ies' : 'y'}`)
             )
           ),
           h('div', { style:{ height:4, background:'#ddd', borderRadius:2, overflow:'hidden' } },
