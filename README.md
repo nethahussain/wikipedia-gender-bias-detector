@@ -1,80 +1,42 @@
 # Wikipedia Gender Bias Detector
 
-## 🔗 [**Try the tool live →**](https://nethahussain.github.io/wikipedia-gender-bias-detector/)
+**Algorithmic bias audit tool for Wikipedia biographies of women.**
 
-> No login. No API key. No AI. Works in any browser, instantly.
+## 🚀 Live Tool
 
----
+> **The tool has moved to Wikimedia Toolforge and is now permanently hosted there.**
 
-A fully client-side tool that analyses Wikipedia biographies of women for systematic gender bias. Paste any article title or URL and the tool returns a detailed report of flagged passages, organised by bias category, with explanations and example rewrites for each.
+### ➡️ [gender-bias-detector.toolforge.org](https://gender-bias-detector.toolforge.org)
 
----
-
-
-## What it detects
-
-The tool checks against **49 bias patterns** across 6 categories:
-
-| Category | Examples |
-|---|---|
-| **Relational Definition** | "wife of", "daughter of", "the woman behind" |
-| **Appearance Focus** | beauty/attractiveness language, body descriptions |
-| **Diminutive Language** | "just a girl", "managed to", "despite being a woman" |
-| **Unnecessary Gendering** | "female scientist", "woman engineer", "for a woman" |
-| **Achievement Minimisation** | passive voice, "helped to develop", "stumbled upon" |
-| **Patronising Tone** | "feisty", "plucky", "remarkably she", "opinionated" |
-
-It also checks for structural issues: whether the opening paragraphs lead with personal/family details over professional identity, and whether passive voice is used at a rate that systematically removes the subject's agency.
+The GitHub Pages version at `nethahussain.github.io/wikipedia-gender-bias-detector` redirects automatically to Toolforge.
 
 ---
 
-## How it works
+## What it does
 
-- Enter a Wikipedia article title or URL in the search box
-- The tool fetches the article from Wikipedia's public API
-- It runs the text through 49 pattern-matching rules
-- Flagged passages are displayed with: matched phrase, explanation of the bias, suggested approach, and an example rewrite
-- Each flag links directly to the relevant **section** of the Wikipedia editor so you can fix it immediately
+The Gender Bias Detector analyses Wikipedia biographies of women for systematic gender bias. It checks articles against 49 algorithmic patterns across six categories:
 
-**Scope:** Women's biographies only. Articles about men or non-biographical pages are rejected with a clear message.
+- **Relational Definition** — defining the subject through her relationships to others
+- **Appearance Focus** — unnecessary descriptions of physical appearance
+- **Diminutive Language** — language that minimises her identity or achievements
+- **Unnecessary Gendering** — adding gender qualifiers to professional titles
+- **Achievement Minimisation** — passive voice and domestic framing that reduces her agency
+- **Patronising Tone** — words that trivialise assertiveness or frame success as surprising
+
+For each flagged passage, the tool explains the bias, suggests an editorial approach, and provides before/after rewrite examples. It links directly to the Wikipedia section for editing.
+
+It also supports **category mode** — enter a Wikipedia category (e.g. `Category:Women Nobel laureates`) to audit all articles in that category at once, with a summary dashboard and sortable results.
 
 ---
 
 ## Features
 
-- 🔍 Live Wikipedia search autocomplete as you type
-- 📌 "Fix on Wikipedia" button links to the exact section containing the problem
-- ✏️ Example rewrites (before/after) for most patterns — randomly varied each run
-- 🖨️ Print / save as PDF
-- ⚡ Fully offline-capable after first load — no data is sent anywhere except to Wikipedia's own API
-
----
-
-## Technical notes
-
-- Pure HTML + JavaScript (React 18 via CDN)
-- No build step, no npm, no bundler
-- No AI, no external API, no authentication
-- Zero data transmission beyond fetching the Wikipedia article
-- Pattern matching is rule-based and deterministic: same article → same results
-- Results require human review — not every flagged passage will be biased in context
-
----
-
-## Scope and limitations
-
-This tool uses **pattern matching**, not AI or semantic understanding. It will:
-- Occasionally flag passages that are not actually biased in context
-- Miss bias that is expressed in unusual or indirect language
-- Not detect bias that requires cultural or historical knowledge to recognise
-
-It is designed as an **aid to human editors**, not a replacement for editorial judgement.
-
----
-
-## Background
-
-Developed as part of Wikipedia gender equity work. Intended for use by Wikipedia editors, researchers, and anyone interested in improving how women are represented in encyclopaedic biography.
+- 49 bias patterns across 6 categories
+- Category-level audits (up to 500 articles, including one level of subcategories)
+- Section-specific edit links
+- Before/after rewrite examples
+- No AI, no login, no data sent externally — fully client-side
+- Sortable results by bias score or alphabetically
 
 ---
 
@@ -86,8 +48,22 @@ A full translation guide is available for anyone wishing to adapt the tool to an
 
 ---
 
+## Hosting
+
+The tool is hosted on [Wikimedia Toolforge](https://wikitech.wikimedia.org/wiki/Portal:Toolforge) at:
+
+**https://gender-bias-detector.toolforge.org**
+
+Source code is maintained in this GitHub repository. The Toolforge deployment is kept in sync via the [Wikimedia GitLab repository](https://gitlab.wikimedia.org/toolforge-repos/gender-bias-detector).
+
+---
+
 ## Licence
 
-This project is released into the public domain under the [CC0 1.0 Universal (CC0 1.0) Public Domain Dedication](https://creativecommons.org/publicdomain/zero/1.0/).
+Released under [CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/) — public domain. No permission needed to use, adapt, or redistribute.
 
-You can copy, modify, distribute and perform the work, even for commercial purposes, all without asking permission.
+---
+
+## Author
+
+Created by [Netha Hussain](https://meta.wikimedia.org/wiki/User:Netha_Hussain) · [nethahussain@gmail.com](mailto:nethahussain@gmail.com)
