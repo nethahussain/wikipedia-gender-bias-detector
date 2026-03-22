@@ -1200,15 +1200,26 @@ function App() {
             'Gender Bias ', h('span',{style:{fontStyle:'italic',color:'#990F3D'}},'Detector'))
         ),
         h('div', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, color:'#4D4845', letterSpacing:'0.06em', textAlign:'right', lineHeight:1.7 } },
-          'Women\'s biographies only · Algorithmic · No AI · No data sent externally')
+          'Algorithmic · Rule-based · No AI · Fully client-side')
+      )
+    ),
+
+    /* About */
+    h('div', { style:{ background:'#FFF1E5', borderBottom:'1px solid #E6D9CE' } },
+      h('div', { style:{ maxWidth:900, margin:'0 auto', padding:'20px 24px' } },
+        h('div', { style:{ fontSize:14, lineHeight:1.85, color:'#4A3728', fontWeight:300 } },
+          'Research shows that Wikipedia biographies of women are more likely to emphasise appearance, define subjects through relationships, and use language that minimises professional achievement. This tool scans articles against ',
+          h('strong', { style:{ fontWeight:600 } }, `${PATTERNS.length} documented bias patterns`),
+          ' across six categories \u2014 relational framing, appearance focus, diminutive language, unnecessary gendering, achievement minimisation, and patronising tone \u2014 and generates an actionable editorial report with specific passages to review and suggested rewrites. Works on individual biographies or entire Wikipedia categories at once. No data leaves your browser.'
+        )
       )
     ),
 
     /* Controls */
-    h('div', { className:'no-print', style:{ background:'#F2DFCE', borderBottom:'2px solid #1A3C40' } },
+    h('div', { className:'no-print', style:{ background:'#F2DFCE', borderBottom:'2px solid #D4C5B5' } },
       h('div', { style:{ maxWidth:900, margin:'0 auto', padding:'24px' } },
         h('div', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, letterSpacing:'0.15em', textTransform:'uppercase', color:'#807973', marginBottom:10 } },
-          `Search for a woman's biography or a Wikipedia category — checks against ${PATTERNS.length} bias patterns`),
+          `Search for a woman's biography or a Wikipedia category`),
         h('div', { style:{ display:'flex', gap:10, flexWrap:'wrap', alignItems:'flex-start' } },
           h(SearchDropdown, {
             value: query,
@@ -1268,11 +1279,11 @@ function App() {
         : phase==='done' && result && meta
           ? h(Report, { result, title:meta.title, url:meta.url, editUrl:meta.editUrl, generatedAt:meta.generatedAt })
           : phase==='idle' && h('div', { style:{ textAlign:'center', padding:'64px 24px' } },
-              h('div',{style:{fontSize:48,marginBottom:14,opacity:.1}},'⚖'),
-              h('div',{style:{fontFamily:"'Playfair Display',serif",fontSize:16,fontStyle:'italic',color:'#A69F97',maxWidth:380,margin:'0 auto',lineHeight:1.9}},
-                'Search for a woman\'s Wikipedia biography — or an entire category — to generate an instant bias audit.'),
-              h('div',{style:{marginTop:14,fontFamily:"'IBM Plex Mono',monospace",fontSize:9,letterSpacing:'0.12em',color:'#B8B2AA'}},
-                `${PATTERNS.length} bias indicators · 6 categories · women's biographies only · fully client-side`)
+              h('div',{style:{fontSize:48,marginBottom:14,opacity:.12}},'⚖'),
+              h('div',{style:{fontFamily:"'Playfair Display',serif",fontSize:18,fontStyle:'italic',color:'#807973',maxWidth:460,margin:'0 auto',lineHeight:1.9}},
+                'Enter a biography or category above to generate an instant editorial audit, with flagged passages, explanations, and suggested rewrites.'),
+              h('div',{style:{marginTop:16,fontFamily:"'IBM Plex Mono',monospace",fontSize:9,letterSpacing:'0.12em',color:'#9E9891'}},
+                `${PATTERNS.length} bias indicators · 6 categories · women's biographies only`)
             )
     ),
 
