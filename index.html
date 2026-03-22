@@ -10,7 +10,7 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Source Serif 4', Georgia, serif; background: #FFF1E5; color: #33302E; -webkit-font-smoothing: antialiased; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Source Serif 4', Georgia, serif; background: #FFF1E5; color: #4A3728; -webkit-font-smoothing: antialiased; }
     @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
     @keyframes spin   { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
     input:focus { outline:none; border-color:#0D7680 !important; box-shadow:0 0 0 3px rgba(13,118,128,0.12); }
@@ -32,7 +32,7 @@
     }
     .dropdown-item {
       padding:10px 14px; cursor:pointer; font-size:14px;
-      font-family:'Source Serif 4',serif; color:#262A33; border-bottom:1px solid #E6D9CE;
+      font-family:'Source Serif 4',serif; color:#1A3C40; border-bottom:1px solid #E6D9CE;
       display:flex; align-items:center; gap:8px;
     }
     .dropdown-item:last-child { border-bottom:none; }
@@ -42,7 +42,7 @@
     .dropdown-searching { padding:10px 14px; font-family:'IBM Plex Mono',monospace; fontSize:10px; color:#aaa; font-size:11px; }
 
     /* ── Footer ── */
-    .tool-footer { background:#262A33; color:#888; font-family:'IBM Plex Mono',monospace; font-size:11px; padding:18px 26px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; letter-spacing:0.05em; }
+    .tool-footer { background:#1A3C40; color:#888; font-family:'IBM Plex Mono',monospace; font-size:11px; padding:18px 26px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; letter-spacing:0.05em; }
     .tool-footer a { color:#0D7680; text-decoration:none; }
     .tool-footer a:hover { text-decoration:underline; }
     @media (max-width:680px) { .grid2 { grid-template-columns:1fr !important; } }
@@ -819,7 +819,7 @@ function SearchDropdown({ value, onChange, onSelect, onSubmit, busy }) {
         onChange: e => { onChange(e.target.value); },
         onFocus:  () => { if (results.length > 0) setOpen(true); },
         onKeyDown: handleKey,
-        style:{ width:'100%', padding:'13px 40px 13px 15px', fontSize:15, border:'1.5px solid #D4C5B5', borderRadius:3, background:'#fff', fontFamily:"'Source Serif 4',serif", color:'#262A33' }
+        style:{ width:'100%', padding:'13px 40px 13px 15px', fontSize:15, border:'1.5px solid #D4C5B5', borderRadius:3, background:'#fff', fontFamily:"'Source Serif 4',serif", color:'#1A3C40' }
       }),
       searching && h('div', { style:{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', width:16, height:16, border:'2px solid #0D7680', borderTopColor:'transparent', borderRadius:'50%', animation:'spin .7s linear infinite' } })
     ),
@@ -914,7 +914,7 @@ function Report({ result, title, url, editUrl, generatedAt }) {
   return h('div', { className:'report-anim' },
 
     /* Header */
-    h('div', { style:{ background:'transparent', color:'#0D7680', border:'1.5px solid #0D7680', padding:'22px 26px' } },
+    h('div', { style:{ background:'#1A3C40', color:'#FFF1E5', padding:'22px 26px' } },
       h('div', { style:{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:12 } },
         h('div', null,
           h('div', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#990F3D', marginBottom:7 } }, 'Algorithmic Bias Audit — Women\'s Biography'),
@@ -923,9 +923,9 @@ function Report({ result, title, url, editUrl, generatedAt }) {
             `${stats.totalWords.toLocaleString()} words · ${stats.totalSentences} sentences · ${stats.passiveRate}% passive voice · ${generatedAt}`)
         ),
         h('div', { style:{ display:'flex', gap:8, flexWrap:'wrap' }, className:'no-print' },
-          h('a', { href:url, target:'_blank', rel:'noopener noreferrer', style:{ padding:'8px 14px', border:'1px solid #444', color:'#A69F97', textDecoration:'none', fontSize:11, fontFamily:"'IBM Plex Mono',monospace", letterSpacing:'0.07em' } }, 'View ↗'),
+          h('a', { href:url, target:'_blank', rel:'noopener noreferrer', style:{ padding:'8px 14px', border:'1px solid #5A7A7E', color:'#A69F97', textDecoration:'none', fontSize:11, fontFamily:"'IBM Plex Mono',monospace", letterSpacing:'0.07em' } }, 'View ↗'),
           h('a', { href:editUrl, target:'_blank', rel:'noopener noreferrer', style:{ padding:'8px 14px', background:'#990F3D', color:'#fff', textDecoration:'none', fontSize:11, fontFamily:"'IBM Plex Mono',monospace", letterSpacing:'0.07em', fontWeight:700 } }, '✏ Edit on Wikipedia'),
-          h('button', { onClick:()=>window.print(), style:{ padding:'8px 14px', border:'1px solid #444', background:'none', color:'#9E9891', fontSize:11, fontFamily:"'IBM Plex Mono',monospace", letterSpacing:'0.07em', cursor:'pointer' } }, '⎙ PDF')
+          h('button', { onClick:()=>window.print(), style:{ padding:'8px 14px', border:'1px solid #5A7A7E', background:'none', color:'#9E9891', fontSize:11, fontFamily:"'IBM Plex Mono',monospace", letterSpacing:'0.07em', cursor:'pointer' } }, '⎙ PDF')
         )
       )
     ),
@@ -1018,7 +1018,7 @@ function CategoryReport({ catTitle, results, generatedAt, catMeta = {} }) {
 
   return h('div', { className:'report-anim' },
 
-    h('div', { style:{ background:'transparent', color:'#0D7680', border:'1.5px solid #0D7680', padding:'22px 26px' } },
+    h('div', { style:{ background:'#1A3C40', color:'#FFF1E5', padding:'22px 26px' } },
       h('div', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#990F3D', marginBottom:7 } }, 'Category Audit — Women\'s Biographies'),
       h('div', { style:{ fontFamily:"'Playfair Display',serif", fontSize:'clamp(17px,3vw,24px)', fontWeight:800, lineHeight:1.2 } }, catTitle),
       h('div', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, color:'#4D4845', marginTop:7, letterSpacing:'0.05em' } },
@@ -1060,7 +1060,7 @@ function CategoryReport({ catTitle, results, generatedAt, catMeta = {} }) {
         h('div', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, color:'#807973', textTransform:'uppercase', letterSpacing:'0.1em' } }, 'Sort:'),
         ['score','alpha'].map(s =>
           h('button', { key:s, onClick:()=>setSort(s),
-            style:{ padding:'5px 12px', border:'1px solid #ccc', background:sort===s?'#262A33':'#fff', color:sort===s?'#fff':'#555', fontFamily:"'IBM Plex Mono',monospace", fontSize:9, letterSpacing:'0.1em', textTransform:'uppercase', cursor:'pointer' } },
+            style:{ padding:'5px 12px', border:'1px solid #ccc', background:sort===s?'#1A3C40':'#fff', color:sort===s?'#fff':'#555', fontFamily:"'IBM Plex Mono',monospace", fontSize:9, letterSpacing:'0.1em', textTransform:'uppercase', cursor:'pointer' } },
             s==='score' ? 'By bias score' : 'A–Z')
         )
       ),
@@ -1187,12 +1187,12 @@ function App() {
 
   const busy = phase === 'loading';
 
-  return h('div', { style:{ fontFamily:"'Source Serif 4',Georgia,serif", minHeight:'100vh', background:'#FFF1E5', color:'#262A33' } },
+  return h('div', { style:{ fontFamily:"'Source Serif 4',Georgia,serif", minHeight:'100vh', background:'#FFF1E5', color:'#1A3C40' } },
 
     h('div', { style:{ background:'#990F3D', height:4 } }),
 
     /* Masthead */
-    h('div', { style:{ background:'#262A33' } },
+    h('div', { style:{ background:'#1A3C40' } },
       h('div', { style:{ maxWidth:900, margin:'0 auto', padding:'18px 24px', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12 } },
         h('div', null,
           h('div', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, letterSpacing:'0.22em', textTransform:'uppercase', color:'#990F3D', marginBottom:5 } }, 'Wikipedia · Gender Equity Tools'),
@@ -1205,7 +1205,7 @@ function App() {
     ),
 
     /* Controls */
-    h('div', { className:'no-print', style:{ background:'#F2DFCE', borderBottom:'2px solid #262A33' } },
+    h('div', { className:'no-print', style:{ background:'#F2DFCE', borderBottom:'2px solid #1A3C40' } },
       h('div', { style:{ maxWidth:900, margin:'0 auto', padding:'24px' } },
         h('div', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, letterSpacing:'0.15em', textTransform:'uppercase', color:'#807973', marginBottom:10 } },
           `Search for a woman's biography or a Wikipedia category — checks against ${PATTERNS.length} bias patterns`),
