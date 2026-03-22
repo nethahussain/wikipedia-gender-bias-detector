@@ -1195,11 +1195,11 @@ function App() {
     h('div', { style:{ background:'#1A3C40' } },
       h('div', { style:{ maxWidth:900, margin:'0 auto', padding:'18px 24px', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12 } },
         h('div', null,
-          h('div', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, letterSpacing:'0.22em', textTransform:'uppercase', color:'#990F3D', marginBottom:5 } }, 'Wikipedia · Gender Equity Tools'),
+          h('div', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, letterSpacing:'0.22em', textTransform:'uppercase', color:'#CC7A88', marginBottom:5 } }, 'Wikipedia · Gender Equity Tools'),
           h('div', { style:{ fontFamily:"'Playfair Display',serif", fontSize:'clamp(20px,4vw,32px)', fontWeight:800, color:'#FFF1E5', letterSpacing:'-0.02em', lineHeight:1.1 } },
             'Gender Bias ', h('span',{style:{fontStyle:'italic',color:'#990F3D'}},'Detector'))
         ),
-        h('div', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, color:'#4D4845', letterSpacing:'0.06em', textAlign:'right', lineHeight:1.7 } },
+        h('div', { style:{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, color:'#8FA8AB', letterSpacing:'0.06em', textAlign:'right', lineHeight:1.7 } },
           'Algorithmic · Rule-based · No AI · Fully client-side')
       )
     ),
@@ -1208,9 +1208,9 @@ function App() {
     h('div', { style:{ background:'#FFF1E5', borderBottom:'1px solid #E6D9CE' } },
       h('div', { style:{ maxWidth:900, margin:'0 auto', padding:'20px 24px' } },
         h('div', { style:{ fontSize:14, lineHeight:1.85, color:'#4A3728', fontWeight:300 } },
-          'Research shows that Wikipedia biographies of women are more likely to emphasise appearance, define subjects through relationships, and use language that minimises professional achievement. This tool scans articles against ',
-          h('strong', { style:{ fontWeight:600 } }, `${PATTERNS.length} documented bias patterns`),
-          ' across six categories \u2014 relational framing, appearance focus, diminutive language, unnecessary gendering, achievement minimisation, and patronising tone \u2014 and generates an actionable editorial report with specific passages to review and suggested rewrites. Works on individual biographies or entire Wikipedia categories at once. No data leaves your browser.'
+          'Scans Wikipedia biographies of women against ',
+          h('strong', { style:{ fontWeight:600 } }, `${PATTERNS.length} bias patterns`),
+          ' across six categories and generates an editorial report with flagged passages and suggested rewrites.'
         )
       )
     ),
